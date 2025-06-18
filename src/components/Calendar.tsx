@@ -1,8 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isSameMonth } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabaseClient';
+import { moodToEmoji } from '@/lib/moodMap';
 
 interface CalendarProps {
   onDateSelect: (date: Date) => void;
@@ -11,6 +12,7 @@ interface CalendarProps {
 
 const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [moodByDate, setMoodByDate] = useState<{[date: string]: string}>({});
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -28,10 +30,27 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Sample mood data - in a real app, this would come from your backend
+  useEffect(() => {
+    async function fetchMoods() {
+      const { data, error } = await supabase
+        .from('journalentries')
+        .select('entry_date, mood')
+        .eq('uid', 1)
+        .gte('entry_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('entry_date', format(monthEnd, 'yyyy-MM-dd'));
+      if (data) {
+        const moods: {[date: string]: string} = {};
+        data.forEach(entry => {
+          moods[entry.entry_date] = moodToEmoji[entry.mood] || null;
+        });
+        setMoodByDate(moods);
+      }
+    }
+    fetchMoods();
+  }, [currentMonth]);
+
   const getMoodForDate = (date: Date) => {
-    const moods = ['😊', '😌', '😔', '😄', '🤔', '😴'];
-    return Math.random() > 0.7 ? moods[Math.floor(Math.random() * moods.length)] : null;
+    return moodByDate[format(date, 'yyyy-MM-dd')] || null;
   };
 
   return (
