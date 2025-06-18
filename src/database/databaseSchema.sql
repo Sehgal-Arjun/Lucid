@@ -15,7 +15,6 @@ CREATE TABLE JournalEntries (
     mood        VARCHAR(10),
     UNIQUE (uid, entry_date),                       -- prevents duplicates
     FOREIGN KEY (uid)     REFERENCES Users(uid)       ON DELETE CASCADE,
-    FOREIGN KEY (mood_id) REFERENCES Moods(mood_id)   ON DELETE SET NULL
 );
 
 /* 3. Per-entry tags */
