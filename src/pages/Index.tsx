@@ -1,12 +1,21 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Calendar from '@/components/Calendar';
 import JournalEntry from '@/components/JournalEntry';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import icon from '@/lib/images/icon.png';
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showJournalEntry, setShowJournalEntry] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const user = sessionStorage.getItem('user');
+    if (!user) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -17,6 +26,11 @@ const Index = () => {
     setShowJournalEntry(false);
   };
 
+  const handleLogout = () => {
+    sessionStorage.clear();
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
@@ -24,14 +38,24 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
+              <img
+                src={icon}
+                alt="Lucid Logo"
+                className="w-8 h-8 object-contain"
+              />
               <h1 className="text-2xl font-semibold text-slate-800">Lucid</h1>
             </div>
-            <div className="text-slate-600 font-medium">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            <div className="flex items-center space-x-4">
+              <div className="text-slate-600 font-medium">
+                {format(new Date(), 'EEEE, MMMM d, yyyy')}
+              </div>
             </div>
+            <button
+                onClick={handleLogout}
+                className="ml-4 px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-colors"
+              >
+                Log out
+              </button>
           </div>
         </div>
       </header>
