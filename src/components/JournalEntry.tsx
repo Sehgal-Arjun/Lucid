@@ -12,6 +12,15 @@ interface JournalEntryProps {
   onClose: () => void;
 }
 
+const getCurrentUser = () => {
+  try {
+    const userData = sessionStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  } catch {
+    return null;
+  }
+};
+
 const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
   const [entry, setEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -20,11 +29,27 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasExistingEntry, setHasExistingEntry] = useState(false);
   const { toast } = useToast();
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Load existing entry when component mounts or date changes
   useEffect(() => {
     const initializeEntry = async () => {
       setIsLoading(true);
+      
+      // Get current user
+      const user = getCurrentUser();
+      setCurrentUser(user);
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to access your journal.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        onClose();
+        return;
+      }
       
       try {
         // Load existing entry for this date
@@ -42,13 +67,13 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
           setEntry(data.content || '');
           setSelectedMood(data.moodEmoji || null);
           setHasExistingEntry(true);
-          console.log('Loaded existing entry for', format(date, 'yyyy-MM-dd'));
+          //console.log('Loaded existing entry for', format(date, 'yyyy-MM-dd'));
         } else {
           // No existing entry, start fresh
           setEntry('');
           setSelectedMood(null);
           setHasExistingEntry(false);
-          console.log('No existing entry for', format(date, 'yyyy-MM-dd'));
+          //console.log('No existing entry for', format(date, 'yyyy-MM-dd'));
         }
       } catch (error) {
         console.error('Error initializing entry:', error);
@@ -58,7 +83,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
     };
 
     initializeEntry();
-  }, [date, toast]);
+  }, [date, toast, onClose]);
 
   const handleSave = async () => {
     // Validate input
@@ -166,11 +191,6 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
                 {hasExistingEntry ? "Update your entry for this day" : "How was your day?"}
               </p>
             </div>
-            {hasExistingEntry && (
-              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                Entry exists
-              </div>
-            )}
           </div>
         </div>
 

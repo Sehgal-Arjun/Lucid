@@ -30,9 +30,9 @@ const SignUp = () => {
       const password_hash = await bcrypt.hash(password, 12);
 
       // Insert into Supabase
-      console.log(email);
-      console.log(password_hash);
-      console.log(name);
+      //console.log(email);
+      //console.log(password_hash);
+      //console.log(name);
       const { data, error } = await supabase
         .from('users')
         .insert({
