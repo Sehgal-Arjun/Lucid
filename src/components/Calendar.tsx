@@ -14,6 +14,10 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [moodByDate, setMoodByDate] = useState<{[date: string]: string}>({});
 
+  // Get current user uid from sessionStorage
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+  const uid = user.uid;
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -32,10 +36,11 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
 
   useEffect(() => {
     async function fetchMoods() {
+      if (!uid) return; // Don't fetch if uid is not available
       const { data, error } = await supabase
         .from('journalentries')
         .select('entry_date, mood')
-        .eq('uid', 1)
+        .eq('uid', uid)
         .gte('entry_date', format(monthStart, 'yyyy-MM-dd'))
         .lte('entry_date', format(monthEnd, 'yyyy-MM-dd'));
       if (data) {
@@ -47,7 +52,7 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
       }
     }
     fetchMoods();
-  }, [currentMonth]);
+  }, [currentMonth, uid]);
 
   const getMoodForDate = (date: Date) => {
     return moodByDate[format(date, 'yyyy-MM-dd')] || null;
