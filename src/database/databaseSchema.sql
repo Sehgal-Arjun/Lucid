@@ -6,26 +6,19 @@ CREATE TABLE Users (
     display_name  VARCHAR(50)
 );
 
-/* 2. Mood catalogue */
-CREATE TABLE Moods (
-    mood_id INT PRIMARY KEY,
-    name    VARCHAR(30) UNIQUE NOT NULL,
-    emoji   CHAR(2)            NOT NULL
-);
-
-/* 3. One journal entry per user per day */
+/* 2. One journal entry per user per day */
 CREATE TABLE JournalEntries (
     entry_id    INT PRIMARY KEY,
-    uid         INT  NOT NULL,
+    uid         INT NOT NULL,
     entry_date  DATE NOT NULL,
     content     TEXT,
-    mood_id     INT,
+    mood        VARCHAR(10),
     UNIQUE (uid, entry_date),                       -- prevents duplicates
     FOREIGN KEY (uid)     REFERENCES Users(uid)       ON DELETE CASCADE,
     FOREIGN KEY (mood_id) REFERENCES Moods(mood_id)   ON DELETE SET NULL
 );
 
-/* 4. Per-entry tags */
+/* 3. Per-entry tags */
 CREATE TABLE EntryTags (
     tag_id   INT PRIMARY KEY,
     entry_id INT NOT NULL,
@@ -34,7 +27,7 @@ CREATE TABLE EntryTags (
     FOREIGN KEY (entry_id) REFERENCES JournalEntries(entry_id) ON DELETE CASCADE
 );
 
-/* 5. Images attached to a journal entry */
+/* 4. Images attached to a journal entry (new) */
 CREATE TABLE Images (
     image_id  INT PRIMARY KEY,
     entry_id  INT NOT NULL,
