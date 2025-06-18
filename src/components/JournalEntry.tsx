@@ -1,10 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { ArrowLeft, Save, Image, Tag } from 'lucide-react';
+import { ArrowLeft, Save, Image, Tag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 import MoodSelector from '@/components/MoodSelector';
+import { saveJournalEntry, loadJournalEntry } from '@/lib/journalService';
 
 interface JournalEntryProps {
   date: Date;
@@ -15,12 +16,108 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
   const [entry, setEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasExistingEntry, setHasExistingEntry] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = () => {
-    // In a real app, this would save to your backend
-    console.log('Saving entry:', { date, entry, mood: selectedMood, tags });
-    onClose();
+  // Load existing entry when component mounts or date changes
+  useEffect(() => {
+    const initializeEntry = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Load existing entry for this date
+        const { data, error } = await loadJournalEntry(date);
+        
+        if (error) {
+          console.error('Failed to load journal entry:', error);
+          toast({
+            title: "Load Warning",
+            description: "Could not load existing entry for this date.",
+            variant: "destructive",
+          });
+        } else if (data) {
+          // Pre-fill the form with existing data
+          setEntry(data.content || '');
+          setSelectedMood(data.moodEmoji || null);
+          setHasExistingEntry(true);
+          console.log('Loaded existing entry for', format(date, 'yyyy-MM-dd'));
+        } else {
+          // No existing entry, start fresh
+          setEntry('');
+          setSelectedMood(null);
+          setHasExistingEntry(false);
+          console.log('No existing entry for', format(date, 'yyyy-MM-dd'));
+        }
+      } catch (error) {
+        console.error('Error initializing entry:', error);
+      }
+      
+      setIsLoading(false);
+    };
+
+    initializeEntry();
+  }, [date, toast]);
+
+  const handleSave = async () => {
+    // Validate input
+    if (!selectedMood && !entry.trim()) {
+      toast({
+        title: "Empty Entry",
+        description: "Please select a mood or write something before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      const { success, error } = await saveJournalEntry(
+        date,
+        entry.trim(),
+        selectedMood || ''
+      );
+
+      if (success) {
+        toast({
+          title: hasExistingEntry ? "Entry Updated" : "Entry Saved",
+          description: hasExistingEntry 
+            ? "Your journal entry has been updated successfully."
+            : "Your journal entry has been saved successfully.",
+        });
+        setHasExistingEntry(true);
+        onClose();
+      } else {
+        toast({
+          title: "Save Failed",
+          description: error || "Failed to save your journal entry. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      toast({
+        title: "Save Error",
+        description: "An unexpected error occurred while saving.",
+        variant: "destructive",
+      });
+    }
+    
+    setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <span className="ml-2 text-slate-600">Loading entry...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -39,10 +136,20 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
         </div>
         <Button
           onClick={handleSave}
+          disabled={isSaving}
           className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl px-6"
         >
-          <Save className="h-4 w-4 mr-2" />
-          Save Entry
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              {hasExistingEntry ? "Update Entry" : "Save Entry"}
+            </>
+          )}
         </Button>
       </div>
 
@@ -55,8 +162,15 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
               <h2 className="text-2xl font-bold text-slate-800">
                 {format(date, 'EEEE, MMMM d, yyyy')}
               </h2>
-              <p className="text-slate-600 mt-1">How was your day?</p>
+              <p className="text-slate-600 mt-1">
+                {hasExistingEntry ? "Update your entry for this day" : "How was your day?"}
+              </p>
             </div>
+            {hasExistingEntry && (
+              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
+                Entry exists
+              </div>
+            )}
           </div>
         </div>
 
@@ -79,15 +193,20 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
 
         {/* Actions */}
         <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
-              <Image className="h-4 w-4 mr-2" />
-              Add Photo
-            </Button>
-            <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
-              <Tag className="h-4 w-4 mr-2" />
-              Add Tags
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
+                <Image className="h-4 w-4 mr-2" />
+                Add Photo
+              </Button>
+              <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
+                <Tag className="h-4 w-4 mr-2" />
+                Add Tags
+              </Button>
+            </div>
+            <div className="text-xs text-slate-400">
+              User ID: 1 • {format(date, 'yyyy-MM-dd')}
+            </div>
           </div>
         </div>
       </div>
