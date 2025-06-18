@@ -2,9 +2,6 @@ import { supabase } from './supabaseClient';
 import { format } from 'date-fns';
 import { moodToEmoji } from './moodMap';
 
-// Use default user uid = 1
-const DEFAULT_USER_ID = 1;
-
 // Create reverse mapping: emoji -> mood name
 const emojiToMood = Object.fromEntries(
   Object.entries(moodToEmoji).map(([mood, emoji]) => [emoji, mood])
@@ -26,6 +23,20 @@ export interface CalendarEntryData {
   mood: string;
 }
 
+// Get current user from session storage
+const getCurrentUser = () => {
+  try {
+    const userData = sessionStorage.getItem('user');
+    if (userData) {
+      return JSON.parse(userData);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user from session storage:', error);
+    return null;
+  }
+};
+
 // Save or update a journal entry
 export const saveJournalEntry = async (
   date: Date,
@@ -33,25 +44,32 @@ export const saveJournalEntry = async (
   selectedMoodEmoji: string // Input is emoji from UI
 ): Promise<{ success: boolean; error?: string }> => {
   try {
+    // Get current user
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { success: false, error: 'User not authenticated. Please log in.' };
+    }
+
     const entryDate = format(date, 'yyyy-MM-dd');
     
     // Convert emoji to mood name for database storage
     const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
     
     console.log('Saving journal entry:', {
-      uid: DEFAULT_USER_ID,
+      uid: user.uid,
       entry_date: entryDate,
       content,
-      mood: moodName // Store mood name, not emoji
+      mood: moodName,
+      user: user.name
     });
     
     const { data, error } = await supabase
       .from('journalentries')
       .upsert({
-        uid: DEFAULT_USER_ID,
+        uid: user.uid, // Use actual user ID
         entry_date: entryDate,
         content: content,
-        mood: moodName // Store "Happy" instead of "😊"
+        mood: moodName
       }, {
         onConflict: 'uid,entry_date'
       })
@@ -62,7 +80,7 @@ export const saveJournalEntry = async (
       return { success: false, error: error.message };
     }
 
-    console.log('Journal entry saved successfully:', data);
+    console.log('Journal entry saved successfully for user:', user.name, data);
     return { success: true };
   } catch (error) {
     console.error('Error saving journal entry:', error);
@@ -75,17 +93,24 @@ export const loadJournalEntry = async (
   date: Date
 ): Promise<{ data?: JournalEntryData & { moodEmoji?: string }; error?: string }> => {
   try {
+    // Get current user
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+
     const entryDate = format(date, 'yyyy-MM-dd');
     
     console.log('Loading journal entry for:', {
-      uid: DEFAULT_USER_ID,
-      entry_date: entryDate
+      uid: user.uid,
+      entry_date: entryDate,
+      user: user.name
     });
     
     const { data, error } = await supabase
       .from('journalentries')
       .select('*')
-      .eq('uid', DEFAULT_USER_ID)
+      .eq('uid', user.uid) // Use actual user ID
       .eq('entry_date', entryDate)
       .single();
 
@@ -97,7 +122,7 @@ export const loadJournalEntry = async (
     if (data) {
       // Convert mood name back to emoji for UI
       const moodEmoji = moodToEmoji[data.mood] || data.mood;
-      console.log('Loaded existing journal entry:', { ...data, moodEmoji });
+      console.log('Loaded existing journal entry for user:', user.name, { ...data, moodEmoji });
       
       return { 
         data: { 
@@ -106,7 +131,7 @@ export const loadJournalEntry = async (
         } 
       };
     } else {
-      console.log('No existing entry found for this date');
+      console.log('No existing entry found for this date for user:', user.name);
     }
 
     return { data: undefined };
@@ -122,13 +147,19 @@ export const getEntriesForMonth = async (
   month: number
 ): Promise<{ data?: CalendarEntryData[]; error?: string }> => {
   try {
+    // Get current user
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+
     const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
     const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
     
     const { data, error } = await supabase
       .from('journalentries')
       .select('entry_date, mood')
-      .eq('uid', DEFAULT_USER_ID)
+      .eq('uid', user.uid) // Use actual user ID
       .gte('entry_date', startDate)
       .lte('entry_date', endDate);
 
@@ -137,6 +168,7 @@ export const getEntriesForMonth = async (
       return { error: error.message };
     }
 
+    console.log(`Loaded ${data?.length || 0} entries for ${user.name} in ${month}/${year}`);
     return { data: data || [] };
   } catch (error) {
     console.error('Error loading entries for month:', error);
