@@ -63,9 +63,9 @@ npm run dev
   - Session is stored in `sessionStorage` for protected routes.
   - Log out button clears session and returns to login.
 - **Calendar-Centric Journaling:**
-  - A clean calendar UI for selecting days.
+  - A clean calendar UI for selecting days, with emoji thumbnails to indicate entries.
   - Create and view daily journal entries.
-  - Track moods and add tags/images to entries.
+  - To be implemented: tags and images (in Milestone 2)
 - **Modern UI:**
   - Responsive, glassmorphic design with Tailwind and shadcn/ui components.
 
@@ -74,6 +74,8 @@ npm run dev
 ## 📝 Notes
 - This app is for demo/educational purposes, as we wanted to use our own SQL queries to manage all database tables. For production, use Supabase Auth for secure authentication.
 - You can extend the schema and UI for more features (mood analytics, sharing, etc).
+- To load our sample data, we have SQL queries in the Supabase SQL Editor. These queries can also be found in the files in the following section.
+- We created this sample data manually. We didn't need a lot of data to get started with the application, as data is user-generated and personal.
 
 ---
 
