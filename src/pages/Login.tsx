@@ -27,16 +27,14 @@ const Login = () => {
     try {
       // Fetch user from Supabase
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      if (error || !data) throw new Error('Invalid email or password');
+        .rpc('login_user', { email_input: email });
+      if (error || !data || data.length === 0) throw new Error('Invalid email or password');
+      const user = data[0];
       // Compare password
-      const match = await bcrypt.compare(password, data.password_hash);
+      const match = await bcrypt.compare(password, user.password_hash);
       if (!match) throw new Error('Invalid email or password');
       // Store user in sessionStorage and redirect
-      sessionStorage.setItem('user', JSON.stringify({ email: data.email, name: data.name, uid: data.uid }));
+      sessionStorage.setItem('user', JSON.stringify({ email: user.email, name: user.name, uid: user.uid }));
       navigate('/calendar');
     } catch (err: any) {
       alert('Login failed: ' + (err.message || err));
