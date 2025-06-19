@@ -29,22 +29,17 @@ const SignUp = () => {
       // Hash the password
       const password_hash = await bcrypt.hash(password, 12);
 
-      // Insert into Supabase
-      //console.log(email);
-      //console.log(password_hash);
-      //console.log(name);
+      // Insert into Supabase using a SQL function
       const { data, error } = await supabase
-        .from('users')
-        .insert({
-          email,
-          password_hash,
-          name,
-        })
-        .select('uid, email, name')
-        .single();
-      if (error) throw error;
-      sessionStorage.setItem('user', JSON.stringify({ uid: data.uid, email: data.email, name: data.name }));
-      alert('Sign up successful! You can now log in.');
+        .rpc('register_user', {
+          email_input: email,
+          password_hash_input: password_hash,
+          name_input: name,
+        });
+      if (error || !data || data.length === 0) throw error || new Error('Sign up failed');
+      const user = data[0];
+      sessionStorage.setItem('user', JSON.stringify({ uid: user.uid, email: user.email, name: user.name }));
+      alert('Sign up successful!');
       setName('');
       setEmail('');
       setPassword('');
