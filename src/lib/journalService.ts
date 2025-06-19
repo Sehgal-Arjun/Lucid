@@ -55,12 +55,12 @@ export const saveJournalEntry = async (
     // Convert emoji to mood name for database storage
     const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
     
-    console.log('Saving journal entry via SQL:', {
+    /*console.log('Saving journal entry via SQL:', {
       user_id: user.uid,
       entry_date_input: entryDate,
       content_input: content,
       mood_input: moodName
-    });
+    });*/
     
     const { data, error } = await supabase.rpc('save_journal_entry', {
       user_id: user.uid,
@@ -74,7 +74,7 @@ export const saveJournalEntry = async (
       return { success: false, error: error.message };
     }
 
-    console.log('Journal entry saved successfully:', data);
+    //console.log('Journal entry saved successfully:', data);
     return { success: true };
   } catch (error) {
     console.error('Error saving journal entry:', error);
@@ -107,7 +107,7 @@ export const loadJournalEntry = async (
     if (data && data.length > 0) {
       const entry = data[0];
       const moodEmoji = moodToEmoji[entry.mood] || entry.mood;
-      console.log('Loaded existing journal entry:', { ...entry, moodEmoji });
+      //console.log('Loaded existing journal entry:', { ...entry, moodEmoji });
       
       return { 
         data: { 
@@ -117,10 +117,10 @@ export const loadJournalEntry = async (
       };
     }
 
-    console.log('No existing entry found for this date');
+    //console.log('No existing entry found for this date');
     return { data: undefined };
   } catch (error) {
-    console.error('Error loading journal entry:', error);
+    //console.error('Error loading journal entry:', error);
     return { error: 'Failed to load entry' };
   }
 };
