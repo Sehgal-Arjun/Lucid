@@ -224,9 +224,6 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
                 Add Tags
               </Button>
             </div>
-            <div className="text-xs text-slate-400">
-              User ID: 1 • {format(date, 'yyyy-MM-dd')}
-            </div>
           </div>
         </div>
       </div>
