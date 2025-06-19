@@ -126,35 +126,3 @@ export const loadJournalEntry = async (
 };
 
 
-export const getEntriesForMonth = async (
-  year: number,
-  month: number
-): Promise<{ data?: CalendarEntryData[]; error?: string }> => {
-  try {
- 
-    const user = getCurrentUser();
-    if (!user || !user.uid) {
-      return { error: 'User not authenticated. Please log in.' };
-    }
-
-    const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-    const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
-    
-    const { data, error } = await supabase.rpc('get_month_entries', {
-      user_id: user.uid,
-      start_date: startDate,
-      end_date: endDate
-    });
-
-    if (error) {
-      console.error('Error loading entries for month:', error);
-      return { error: error.message };
-    }
-
-    console.log(`Loaded ${data?.length || 0} entries via SQL`);
-    return { data: data || [] };
-  } catch (error) {
-    console.error('Error loading entries for month:', error);
-    return { error: 'Failed to load entries' };
-  }
-}; 
