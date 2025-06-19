@@ -36,13 +36,13 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
 
   useEffect(() => {
     async function fetchMoods() {
-      if (!uid) return; // Don't fetch if uid is not available
-      const { data, error } = await supabase
-        .from('journalentries')
-        .select('entry_date, mood')
-        .eq('uid', uid)
-        .gte('entry_date', format(monthStart, 'yyyy-MM-dd'))
-        .lte('entry_date', format(monthEnd, 'yyyy-MM-dd'));
+      if (!uid) return;
+      const { data, error } = await supabase.rpc('get_moods_by_month', {
+        user_id: uid,
+        start_date: format(monthStart, 'yyyy-MM-dd'),
+        end_date: format(monthEnd, 'yyyy-MM-dd'),
+      });
+      
       if (data) {
         const moods: {[date: string]: string} = {};
         data.forEach(entry => {
