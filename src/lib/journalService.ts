@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient';
 import { format } from 'date-fns';
 import { moodToEmoji } from './moodMap';
 
-// Create reverse mapping: emoji -> mood name
+
 const emojiToMood = Object.fromEntries(
   Object.entries(moodToEmoji).map(([mood, emoji]) => [emoji, mood])
 );
@@ -12,18 +12,18 @@ export interface JournalEntryData {
   uid: number;
   entry_date: string;
   content: string;
-  mood: string; // This will now be mood name like "Happy", not emoji
+  mood: string; 
   created_at?: string;
   updated_at?: string;
 }
 
-// Add this interface after JournalEntryData
+
 export interface CalendarEntryData {
   entry_date: string;
   mood: string;
 }
 
-// Get current user from session storage
+
 const getCurrentUser = () => {
   try {
     const userData = sessionStorage.getItem('user');
@@ -37,11 +37,11 @@ const getCurrentUser = () => {
   }
 };
 
-// Save or update a journal entry
+
 export const saveJournalEntry = async (
   date: Date,
   content: string,
-  selectedMoodEmoji: string // Input is emoji from UI
+  selectedMoodEmoji: string 
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     // Get current user
@@ -55,32 +55,26 @@ export const saveJournalEntry = async (
     // Convert emoji to mood name for database storage
     const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
     
-    console.log('Saving journal entry:', {
-      uid: user.uid,
-      entry_date: entryDate,
-      content,
-      mood: moodName,
-      user: user.name
+    console.log('Saving journal entry via SQL:', {
+      user_id: user.uid,
+      entry_date_input: entryDate,
+      content_input: content,
+      mood_input: moodName
     });
     
-    const { data, error } = await supabase
-      .from('journalentries')
-      .upsert({
-        uid: user.uid, // Use actual user ID
-        entry_date: entryDate,
-        content: content,
-        mood: moodName
-      }, {
-        onConflict: 'uid,entry_date'
-      })
-      .select();
+    const { data, error } = await supabase.rpc('save_journal_entry', {
+      user_id: user.uid,
+      entry_date_input: entryDate,
+      content_input: content,
+      mood_input: moodName
+    });
 
     if (error) {
       console.error('Error saving journal entry:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('Journal entry saved successfully for user:', user.name, data);
+    console.log('Journal entry saved successfully:', data);
     return { success: true };
   } catch (error) {
     console.error('Error saving journal entry:', error);
@@ -88,12 +82,11 @@ export const saveJournalEntry = async (
   }
 };
 
-// Load a journal entry for a specific date
 export const loadJournalEntry = async (
   date: Date
 ): Promise<{ data?: JournalEntryData & { moodEmoji?: string }; error?: string }> => {
   try {
-    // Get current user
+
     const user = getCurrentUser();
     if (!user || !user.uid) {
       return { error: 'User not authenticated. Please log in.' };
@@ -101,39 +94,30 @@ export const loadJournalEntry = async (
 
     const entryDate = format(date, 'yyyy-MM-dd');
     
-    console.log('Loading journal entry for:', {
-      uid: user.uid,
-      entry_date: entryDate,
-      user: user.name
+    const { data, error } = await supabase.rpc('load_journal_entry', {
+      user_id: user.uid,
+      entry_date_input: entryDate
     });
-    
-    const { data, error } = await supabase
-      .from('journalentries')
-      .select('*')
-      .eq('uid', user.uid) // Use actual user ID
-      .eq('entry_date', entryDate)
-      .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+    if (error) {
       console.error('Error loading journal entry:', error);
       return { error: error.message };
     }
 
-    if (data) {
-      // Convert mood name back to emoji for UI
-      const moodEmoji = moodToEmoji[data.mood] || data.mood;
-      console.log('Loaded existing journal entry for user:', user.name, { ...data, moodEmoji });
+    if (data && data.length > 0) {
+      const entry = data[0];
+      const moodEmoji = moodToEmoji[entry.mood] || entry.mood;
+      console.log('Loaded existing journal entry:', { ...entry, moodEmoji });
       
       return { 
         data: { 
-          ...data, 
-          moodEmoji // Add emoji version for UI
+          ...entry, 
+          moodEmoji
         } 
       };
-    } else {
-      console.log('No existing entry found for this date for user:', user.name);
     }
 
+    console.log('No existing entry found for this date');
     return { data: undefined };
   } catch (error) {
     console.error('Error loading journal entry:', error);
@@ -141,13 +125,13 @@ export const loadJournalEntry = async (
   }
 };
 
-// Get entries for a month (for calendar indicators)
+
 export const getEntriesForMonth = async (
   year: number,
   month: number
 ): Promise<{ data?: CalendarEntryData[]; error?: string }> => {
   try {
-    // Get current user
+ 
     const user = getCurrentUser();
     if (!user || !user.uid) {
       return { error: 'User not authenticated. Please log in.' };
@@ -156,19 +140,18 @@ export const getEntriesForMonth = async (
     const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
     const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
     
-    const { data, error } = await supabase
-      .from('journalentries')
-      .select('entry_date, mood')
-      .eq('uid', user.uid) // Use actual user ID
-      .gte('entry_date', startDate)
-      .lte('entry_date', endDate);
+    const { data, error } = await supabase.rpc('get_month_entries', {
+      user_id: user.uid,
+      start_date: startDate,
+      end_date: endDate
+    });
 
     if (error) {
       console.error('Error loading entries for month:', error);
       return { error: error.message };
     }
 
-    console.log(`Loaded ${data?.length || 0} entries for ${user.name} in ${month}/${year}`);
+    console.log(`Loaded ${data?.length || 0} entries via SQL`);
     return { data: data || [] };
   } catch (error) {
     console.error('Error loading entries for month:', error);
