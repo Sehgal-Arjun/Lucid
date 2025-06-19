@@ -1,0 +1,36 @@
+UPDATE 1
+ entry_id | uid | entry_date |                  content                  |    mood    
+----------+-----+------------+-------------------------------------------+------------
+        2 |   2 | 2025-06-03 | Felt a bit down today.                    | Sad
+        4 |   3 | 2025-06-01 | Went hiking in the mountains.             | Frustrated
+        5 |   2 | 2025-06-09 | Read a good book and relaxed.             | Loved
+        9 |   1 | 2025-06-10 | SUPAAA                                    | Excited
+        7 |   1 | 2025-06-03 | Today's going to be a good good day!      | Excited
+       11 |   9 | 2025-06-18 | JIGNESHHH                                 | Happy
+        8 |   1 | 2025-06-04 | i am thinking about it                    | Thoughtful
+        3 |   1 | 2025-06-05 | Worked on my project and felt productive. | Thoughtful
+       13 |   1 | 2025-06-07 | new entry                                 | Sad
+       15 |   6 | 2025-06-04 | hello                                     | Happy
+       16 |   6 | 2025-06-12 | i am very very sad                        | Sad
+       17 |   5 | 2025-06-10 | I am feeling lonely                       | Frustrated
+        1 |   1 | 2025-06-18 | Visited the ROM--great day!               | happy
+(13 rows)
+
+ entry_date | mood 
+------------+------
+(0 rows)
+
+ entry_id |           content           | mood  |   name   |                                                                      file_path                                                                       
+----------+-----------------------------+-------+----------+------------------------------------------------------------------------------------------------------------------------------------------------------
+        1 | Visited the ROM--great day! | happy | outdoors | https://media.istockphoto.com/id/157675185/photo/central-park-in-new-york-city.jpg?s=612x612&w=0&k=20&c=W0L68R6Hs4eqbrt3XTmJ_QKnd5buWR2ce0W3M7juez8=
+(1 row)
+
+ entry_date |    mood    
+------------+------------
+ 2025-06-03 | Excited
+ 2025-06-04 | Thoughtful
+ 2025-06-05 | Thoughtful
+ 2025-06-07 | Sad
+ 2025-06-10 | Excited
+ 2025-06-18 | happy
+(6 rows)
