@@ -1,10 +1,9 @@
 UPDATE JournalEntries
-SET content = 'Visited the ROM--great day!', mood    = 'happy'
+SET content = 'Visited the ROM--great day!', mood = 'happy'
 WHERE uid = 1
 AND entry_date = '2025-06-18';
 
-INSERT INTO JournalEntries (entry_id, uid, entry_date, content, mood)
-VALUES (101, 1, '2025-06-18', 'Visited the ROM--great day!', 'happy');
+SELECT * FROM JournalEntries;
 
 SELECT je.entry_date, je.mood
 FROM   JournalEntries je, EntryTags et
