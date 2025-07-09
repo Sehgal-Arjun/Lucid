@@ -126,6 +126,59 @@ export const loadJournalEntry = async (
   }
 };
 
+export const loadJournalEntryById = async (
+  entry_id: number
+): Promise<{ data?: JournalEntryData & { moodEmoji?: string }; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase
+      .from('journalentries')
+      .select('*')
+      .eq('uid', user.uid)
+      .eq('entry_id', entry_id)
+      .single();
+    if (error) {
+      return { error: error.message };
+    }
+    if (data) {
+      const moodEmoji = moodToEmoji[data.mood] || data.mood;
+      return { data: { ...data, moodEmoji } };
+    }
+    return { data: undefined };
+  } catch (error) {
+    return { error: 'Failed to load entry by id' };
+  }
+};
+
+export const updateJournalEntryById = async (
+  entryId: number,
+  content: string,
+  selectedMoodEmoji: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { success: false, error: 'User not authenticated. Please log in.' };
+    }
+    const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
+    const { data, error } = await supabase.rpc('update_journal_entry_by_id', {
+      p_entry_id: entryId,
+      p_content: content,
+      p_mood: moodName
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    await refreshMonthlyMoodView();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update entry' };
+  }
+};
+
 export const debugCheckData = async (): Promise<{ data?: any[]; error?: string }> => {
   try {
     const user = getCurrentUser();
@@ -195,3 +248,129 @@ export const getMonthlyMoodSummary = async (
   }
 };
 
+export const filterJournalEntries = async (
+  filters: {
+    mood?: string;
+    content?: string;
+    startDate?: string;
+    endDate?: string;
+    tag?: string;
+  }
+): Promise<{ data?: JournalEntryData[]; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { mood, content, startDate, endDate, tag } = filters;
+    const { data, error } = await supabase.rpc('filter_journal_entries', {
+      p_uid: user.uid,
+      p_mood: mood || null,
+      p_content: content || null,
+      p_start_date: startDate || null,
+      p_end_date: endDate || null,
+      p_tag: tag || null,
+    });
+    if (error) {
+      return { error: error.message };
+    }
+    return { data };
+  } catch (error) {
+    return { error: 'Failed to fetch filtered entries' };
+  }
+};
+
+/**
+ * Fetch the user's longest happy streak from the v_happy_streaks view
+ */
+export const getLongestHappyStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    // Query the view for this user's streak
+    const { data, error } = await supabase
+      .from('v_happy_streaks')
+      .select('longest_happy_streak')
+      .eq('uid', user.uid)
+      .maybeSingle();
+    if (error) return { error: error.message };
+    return { streak: data?.longest_happy_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch longest happy streak' };
+  }
+};
+
+export const getCurrentStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_current_streak', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { streak: data?.[0]?.current_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch current streak' };
+  }
+};
+
+export const getLongestStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_longest_streak', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { streak: data?.[0]?.longest_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch longest streak' };
+  }
+};
+
+export const getMostCommonMood = async (): Promise<{ mood?: string; count?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_most_common_mood', { user_id: user.uid });
+    if (error) return { error: error.message };
+    if (data && data.length > 0) {
+      return { mood: data[0].mood, count: data[0].mood_count };
+    }
+    return { mood: undefined, count: 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch most common mood' };
+  }
+};
+
+export const getTotalEntries = async (): Promise<{ total?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_total_entries', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { total: data?.[0]?.total_entries ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch total entries' };
+  }
+};
+
+export const getAvgEntryLength = async (): Promise<{ avg?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_avg_entry_length', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { avg: data?.[0]?.avg_entry_length ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch average entry length' };
+  }
+};
