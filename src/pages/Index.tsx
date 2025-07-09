@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from '@/components/Calendar';
 import JournalEntry from '@/components/JournalEntry';
-import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { format, startOfMonth } from 'date-fns';
+import { useNavigate, Link } from 'react-router-dom';
 import icon from '@/lib/images/icon.png';
 
 const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showJournalEntry, setShowJournalEntry] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,7 @@ const Index = () => {
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setShowJournalEntry(true);
+    setCurrentMonth(startOfMonth(date));
   };
 
   const handleCloseEntry = () => {
@@ -49,6 +51,7 @@ const Index = () => {
               <div className="text-slate-600 font-medium">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </div>
+              <Link to="/recap" className="text-blue-600 hover:underline">Monthly Recap</Link>
             </div>
             <button
                 onClick={handleLogout}
@@ -72,7 +75,12 @@ const Index = () => {
               </p>
             </div>
             
-            <Calendar onDateSelect={handleDateSelect} selectedDate={selectedDate} />
+            <Calendar 
+              onDateSelect={handleDateSelect} 
+              selectedDate={selectedDate} 
+              currentMonth={currentMonth}
+              onMonthChange={setCurrentMonth}
+            />
           </div>
         ) : (
           <JournalEntry 

@@ -68,6 +68,9 @@ npm run dev
   - To be implemented: tags and images (in Milestone 2)
 - **Modern UI:**
   - Responsive, glassmorphic design with Tailwind and shadcn/ui components.
+- **Mood Analytics:**
+  - Monthly mood summaries are computed in a materialized view for fast charts.
+  - A dedicated Monthly Recap page lets you select any month and view the mood breakdown.
 
 ---
 
@@ -84,3 +87,6 @@ npm run dev
 - `src/database/populateUsers.sql` — Sample users
 - `src/database/populateDatabase.sql` — Sample journal entries, tags, images
 - `src/scripts/generateHash.js` — Script to generate password hashes for users
+- `src/database/queries/mv_monthly_mood.sql` — Materialized view for monthly mood counts
+- `src/database/queries/get_monthly_mood_summary.sql` — Helper function to query the view
+- `src/database/queries/refresh_mv_monthly_mood.sql` — Refresh utility for the view

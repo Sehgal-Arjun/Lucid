@@ -8,10 +8,13 @@ import { moodToEmoji } from '@/lib/moodMap';
 interface CalendarProps {
   onDateSelect: (date: Date) => void;
   selectedDate: Date;
+  currentMonth?: Date;
+  onMonthChange?: (date: Date) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, currentMonth: controlledMonth, onMonthChange }) => {
+  const [internalMonth, setInternalMonth] = useState(new Date());
+  const currentMonth = controlledMonth || internalMonth;
   const [moodByDate, setMoodByDate] = useState<{[date: string]: string}>({});
 
   // Get current user uid from sessionStorage
@@ -29,7 +32,11 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate }) => {
     } else {
       newMonth.setMonth(currentMonth.getMonth() + 1);
     }
-    setCurrentMonth(newMonth);
+    if (onMonthChange) {
+      onMonthChange(newMonth);
+    } else {
+      setInternalMonth(newMonth);
+    }
   };
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
