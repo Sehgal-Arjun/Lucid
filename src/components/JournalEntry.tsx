@@ -86,6 +86,19 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
   }, [date, toast, onClose]);
 
   const handleSave = async () => {
+    // Add this future date check
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    
+    if (date > today) {
+      toast({
+        title: "Invalid Date",
+        description: "You cannot create journal entries for future dates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate input
     if (!selectedMood && !entry.trim()) {
       toast({

@@ -41,26 +41,27 @@ const getCurrentUser = () => {
 export const saveJournalEntry = async (
   date: Date,
   content: string,
-  selectedMoodEmoji: string 
+  selectedMoodEmoji: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Get current user
+    // Add client-side future date check
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    if (date > today) {
+      return { 
+        success: false, 
+        error: 'You cannot create journal entries for future dates. Please select today or a past date.' 
+      };
+    }
+
     const user = getCurrentUser();
     if (!user || !user.uid) {
       return { success: false, error: 'User not authenticated. Please log in.' };
     }
 
     const entryDate = format(date, 'yyyy-MM-dd');
-    
-    // Convert emoji to mood name for database storage
     const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
-    
-    /*console.log('Saving journal entry via SQL:', {
-      user_id: user.uid,
-      entry_date_input: entryDate,
-      content_input: content,
-      mood_input: moodName
-    });*/
     
     const { data, error } = await supabase.rpc('save_journal_entry', {
       user_id: user.uid,
@@ -74,10 +75,7 @@ export const saveJournalEntry = async (
       return { success: false, error: error.message };
     }
 
-    // Refresh the materialized view so the recap updates immediately
     await refreshMonthlyMoodView();
-
-    //console.log('Journal entry saved successfully:', data);
     return { success: true };
   } catch (error) {
     console.error('Error saving journal entry:', error);
