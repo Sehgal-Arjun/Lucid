@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Calendar from '@/components/Calendar';
 import JournalEntry from '@/components/JournalEntry';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import icon from '@/lib/images/icon.png';
 
 const Index = () => {
@@ -49,6 +49,7 @@ const Index = () => {
               <div className="text-slate-600 font-medium">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </div>
+              <Link to="/recap" className="text-blue-600 hover:underline">Monthly Recap</Link>
             </div>
             <button
                 onClick={handleLogout}

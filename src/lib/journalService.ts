@@ -126,3 +126,29 @@ export const loadJournalEntry = async (
 };
 
 
+
+export const getMonthlyMoodSummary = async (
+  start: Date,
+  end: Date
+): Promise<{ data?: { month: string; mood: string; mood_count: number }[]; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const startDate = format(start, 'yyyy-MM-dd');
+    const endDate = format(end, 'yyyy-MM-dd');
+    const { data, error } = await supabase.rpc('get_monthly_mood_summary', {
+      user_id: user.uid,
+      start_date: startDate,
+      end_date: endDate
+    });
+    if (error) {
+      return { error: error.message };
+    }
+    return { data };
+  } catch (error) {
+    return { error: 'Failed to fetch mood summary' };
+  }
+};
+
