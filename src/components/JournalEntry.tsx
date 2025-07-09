@@ -178,7 +178,6 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <Button
@@ -188,7 +187,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
             className="hover:bg-slate-100 rounded-xl"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {onBackToFiltered ? 'Back to Filtered Results' : 'Back to Calendar'}
+            Back
           </Button>
         </div>
         <Button
