@@ -146,17 +146,17 @@ const MonthlyRecap = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        <div className="flex justify-center">
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="border p-2 rounded-md"
-          />
-        </div>
         {/* Mood Summary Card */}
         <Card className="bg-white rounded-xl shadow">
           <CardHeader>
+            <div className="flex justify-center mb-2">
+              <input
+                type="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="border p-2 rounded-md"
+              />
+            </div>
             <CardTitle className="text-xl font-semibold mb-2">
               Mood Summary for {format(baseDate, 'MMMM yyyy')}
             </CardTitle>
