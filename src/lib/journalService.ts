@@ -125,4 +125,34 @@ export const loadJournalEntry = async (
   }
 };
 
+export const loadEntriesInRange = async (
+  start: Date,
+  end: Date
+): Promise<{ data?: JournalEntryData[]; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+
+    const { data, error } = await supabase.rpc('get_entries_in_range', {
+      user_id: user.uid,
+      start_date: startStr,
+      end_date: endStr,
+    });
+
+    if (error) {
+      console.error('Error loading entries:', error);
+      return { error: error.message };
+    }
+
+    return { data: data || [] };
+  } catch (error) {
+    return { error: 'Failed to load entries' };
+  }
+};
+
 

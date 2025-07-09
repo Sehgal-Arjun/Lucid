@@ -84,3 +84,5 @@ npm run dev
 - `src/database/populateUsers.sql` — Sample users
 - `src/database/populateDatabase.sql` — Sample journal entries, tags, images
 - `src/scripts/generateHash.js` — Script to generate password hashes for users
+- `src/database/queries/create_idx_journalentries_uid_date.sql` — Create index used for filtering
+- `src/database/queries/get_entries_in_range.sql` — Function to fetch entries between two dates

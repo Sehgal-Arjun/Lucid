@@ -49,13 +49,19 @@ const Index = () => {
               <div className="text-slate-600 font-medium">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </div>
-            </div>
-            <button
+              <button
+                onClick={() => navigate('/entries')}
+                className="px-3 py-2 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-800"
+              >
+                Filter Entries
+              </button>
+              <button
                 onClick={handleLogout}
-                className="ml-4 px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-colors"
+                className="px-4 py-2 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-colors"
               >
                 Log out
               </button>
+            </div>
           </div>
         </div>
       </header>
