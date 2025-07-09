@@ -51,7 +51,7 @@ const Index = () => {
               <div className="text-slate-600 font-medium">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </div>
-              <Link to="/recap" className="text-blue-600 hover:underline">Monthly Recap</Link>
+              <Link to="/recap" className="text-blue-600 hover:underline">Analysis</Link>
             </div>
             <button
                 onClick={handleLogout}

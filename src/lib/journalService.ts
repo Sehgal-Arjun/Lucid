@@ -197,3 +197,98 @@ export const getMonthlyMoodSummary = async (
   }
 };
 
+/**
+ * Fetch the user's longest happy streak from the v_happy_streaks view
+ */
+export const getLongestHappyStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    // Query the view for this user's streak
+    const { data, error } = await supabase
+      .from('v_happy_streaks')
+      .select('longest_happy_streak')
+      .eq('uid', user.uid)
+      .maybeSingle();
+    if (error) return { error: error.message };
+    return { streak: data?.longest_happy_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch longest happy streak' };
+  }
+};
+
+export const getCurrentStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_current_streak', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { streak: data?.[0]?.current_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch current streak' };
+  }
+};
+
+export const getLongestStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_longest_streak', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { streak: data?.[0]?.longest_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch longest streak' };
+  }
+};
+
+export const getMostCommonMood = async (): Promise<{ mood?: string; count?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_most_common_mood', { user_id: user.uid });
+    if (error) return { error: error.message };
+    if (data && data.length > 0) {
+      return { mood: data[0].mood, count: data[0].mood_count };
+    }
+    return { mood: undefined, count: 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch most common mood' };
+  }
+};
+
+export const getTotalEntries = async (): Promise<{ total?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_total_entries', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { total: data?.[0]?.total_entries ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch total entries' };
+  }
+};
+
+export const getAvgEntryLength = async (): Promise<{ avg?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase.rpc('get_avg_entry_length', { user_id: user.uid });
+    if (error) return { error: error.message };
+    return { avg: data?.[0]?.avg_entry_length ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch average entry length' };
+  }
+};
+
