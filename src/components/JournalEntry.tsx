@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import MoodSelector from '@/components/MoodSelector';
-import { saveJournalEntry, loadJournalEntry } from '@/lib/journalService';
+import { saveJournalEntry, loadJournalEntry, updateJournalEntryById } from '@/lib/journalService';
 
 interface JournalEntryProps {
-  date: Date;
+  date?: Date;
+  entryId?: number;
   onClose: () => void;
+  onBackToFiltered?: () => void;
 }
 
 const getCurrentUser = () => {
@@ -21,7 +23,7 @@ const getCurrentUser = () => {
   }
 };
 
-const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
+const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onBackToFiltered }) => {
   const [entry, setEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
@@ -30,6 +32,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
   const [hasExistingEntry, setHasExistingEntry] = useState(false);
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [entryDate, setEntryDate] = useState<Date | null>(date || null);
 
   // Load existing entry when component mounts or date changes
   useEffect(() => {
@@ -52,14 +55,20 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
       }
       
       try {
-        // Load existing entry for this date
-        const { data, error } = await loadJournalEntry(date);
+        let result;
+        if (entryId) {
+          const { loadJournalEntryById } = await import('@/lib/journalService');
+          result = await loadJournalEntryById(entryId);
+        } else if (date) {
+          result = await loadJournalEntry(date);
+        }
+        const { data, error } = result || {};
         
         if (error) {
           console.error('Failed to load journal entry:', error);
           toast({
             title: "Load Warning",
-            description: "Could not load existing entry for this date.",
+            description: "Could not load existing entry.",
             variant: "destructive",
           });
         } else if (data) {
@@ -67,12 +76,16 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
           setEntry(data.content || '');
           setSelectedMood(data.moodEmoji || null);
           setHasExistingEntry(true);
+          if (data.entry_date) {
+            setEntryDate(new Date(data.entry_date));
+          }
           //console.log('Loaded existing entry for', format(date, 'yyyy-MM-dd'));
         } else {
           // No existing entry, start fresh
           setEntry('');
           setSelectedMood(null);
           setHasExistingEntry(false);
+          setEntryDate(date || null);
           //console.log('No existing entry for', format(date, 'yyyy-MM-dd'));
         }
       } catch (error) {
@@ -83,7 +96,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
     };
 
     initializeEntry();
-  }, [date, toast, onClose]);
+  }, [date, entryId, toast, onClose]);
 
   const handleSave = async () => {
     // Validate input
@@ -97,13 +110,19 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
     }
 
     setIsSaving(true);
-    
+
     try {
-      const { success, error } = await saveJournalEntry(
-        date,
-        entry.trim(),
-        selectedMood || ''
-      );
+      let result;
+      if (entryId) {
+        result = await updateJournalEntryById(entryId, entry.trim(), selectedMood || '');
+      } else {
+        result = await saveJournalEntry(
+          entryDate || new Date(),
+          entry.trim(),
+          selectedMood || ''
+        );
+      }
+      const { success, error } = result || {};
 
       if (success) {
         toast({
@@ -129,7 +148,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
         variant: "destructive",
       });
     }
-    
+
     setIsSaving(false);
   };
 
@@ -152,11 +171,11 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClose}
+            onClick={onBackToFiltered ? onBackToFiltered : onClose}
             className="hover:bg-slate-100 rounded-xl"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Calendar
+            {onBackToFiltered ? 'Back to Filtered Results' : 'Back to Calendar'}
           </Button>
         </div>
         <Button
@@ -185,7 +204,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, onClose }) => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-slate-800">
-                {format(date, 'EEEE, MMMM d, yyyy')}
+                {entryDate ? format(entryDate, 'EEEE, MMMM d, yyyy') : ''}
               </h2>
               <p className="text-slate-600 mt-1">
                 {hasExistingEntry ? "Update your entry for this day" : "How was your day?"}
