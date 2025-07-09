@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const moodKeywordGroups: Record<string, string[]> = {
   Happy: [
-    "joy", "cheerful", "delighted", "content", "pleased", "smile", "grateful", "optimistic", "elated", "glad"
+    "happy", "joy", "cheerful", "delighted", "content", "pleased", "smile", "grateful", "optimistic", "elated", "glad"
   ],
   Peaceful: [
     "peaceful", "calm", "serene", "tranquil", "relaxed", "zen", "still", "quiet", "soothing", "composed"
@@ -47,7 +47,7 @@ export function getMoodFromEntry(entry: string): string {
       lastMood = moodKeywords[word];
     }
   }
-  return lastMood ?? "happy";
+  return lastMood ?? "Happy";
 }
 
 function capitalizeMood(mood: string) {

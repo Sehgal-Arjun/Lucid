@@ -26,6 +26,9 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, current
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  const firstDayOfWeek = monthStart.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const blanks = Array.from({ length: firstDayOfWeek });
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = new Date(currentMonth);
     if (direction === 'prev') {
@@ -109,6 +112,11 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, current
 
         {/* Calendar days */}
         <div className="grid grid-cols-7 gap-4">
+          {/* Blank days for offset */}
+          {blanks.map((_, i) => (
+            <div key={`blank-${i}`} />
+          ))}
+          {/* Actual days */}
           {days.map((day) => {
             const mood = getMoodForDate(day);
             const isCurrentMonth = isSameMonth(day, currentMonth);

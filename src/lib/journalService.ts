@@ -38,6 +38,18 @@ const getCurrentUser = () => {
   }
 };
 
+// Helper: Format a JS Date as yyyy-MM-dd in UTC-5 (ET, no DST)
+function formatDateET(date: Date): string {
+  // Get UTC time, then subtract 5 hours for ET (no DST)
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const et = new Date(utc - 5 * 60 * 60000);
+  return et.toISOString().slice(0, 10);
+}
+
+// Helper: Parse a yyyy-MM-dd string as midnight ET (UTC-5)
+function parseDateET(dateString: string): Date {
+  return new Date(dateString + 'T00:00:00-05:00');
+}
 
 export const saveJournalEntry = async (
   date: Date,
@@ -52,7 +64,8 @@ export const saveJournalEntry = async (
       return { success: false, error: 'User not authenticated. Please log in.' };
     }
 
-    const entryDate = format(date, 'yyyy-MM-dd');
+    // Always use ET (UTC-5) for DB
+    const entryDate = formatDateET(date);
     console.log('[saveJournalEntry] entryDate:', entryDate);
     console.log('[saveJournalEntry] content:', content);
     console.log('[saveJournalEntry] selectedMoodEmoji:', selectedMoodEmoji);
@@ -128,7 +141,8 @@ export const loadJournalEntry = async (
       return { error: 'User not authenticated. Please log in.' };
     }
 
-    const entryDate = format(date, 'yyyy-MM-dd');
+    // Always use ET (UTC-5) for DB
+    const entryDate = formatDateET(date);
     console.log('[loadJournalEntry] entryDate:', entryDate);
     
     const { data, error } = await supabase.rpc('load_journal_entry', {
@@ -147,13 +161,14 @@ export const loadJournalEntry = async (
       // Capitalize first letter for mood mapping
       const moodKey = entry.mood ? entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1).toLowerCase() : '';
       const moodEmoji = moodToEmoji[moodKey] || entry.mood;
-      console.log('[loadJournalEntry] entry loaded:', { ...entry, moodEmoji });
-      return { 
-        data: { 
-          ...entry, 
-          moodEmoji
-        } 
+      // Parse DB date as ET
+      const parsedEntry = {
+        ...entry,
+        entry_date: entry.entry_date ? parseDateET(entry.entry_date) : undefined,
+        moodEmoji
       };
+      console.log('[loadJournalEntry] entry loaded:', parsedEntry);
+      return { data: parsedEntry };
     }
 
     console.log('[loadJournalEntry] No existing entry found for this date');
