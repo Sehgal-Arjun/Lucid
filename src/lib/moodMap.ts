@@ -1,4 +1,4 @@
-export const moodToEmoji: { [key: string]: string } = {
+export const moodToEmoji: Record<string, string> = {
     Happy: '😊',
     Peaceful: '😌',
     Excited: '😄',
@@ -7,7 +7,4 @@ export const moodToEmoji: { [key: string]: string } = {
     Tired: '😴',
     Frustrated: '😤',
     Loved: '🥰',
-    Productive: '💪',
-    Adventurous: '🏞️',
-    Relaxed: '😌',
-  };
+};

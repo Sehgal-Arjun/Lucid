@@ -10,9 +10,10 @@ interface CalendarProps {
   selectedDate: Date;
   currentMonth?: Date;
   onMonthChange?: (date: Date) => void;
+  refreshFlag?: number;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, currentMonth: controlledMonth, onMonthChange }) => {
+const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, currentMonth: controlledMonth, onMonthChange, refreshFlag }) => {
   const [internalMonth, setInternalMonth] = useState(new Date());
   const currentMonth = controlledMonth || internalMonth;
   const [moodByDate, setMoodByDate] = useState<{[date: string]: string}>({});
@@ -53,13 +54,14 @@ const Calendar: React.FC<CalendarProps> = ({ onDateSelect, selectedDate, current
       if (data) {
         const moods: {[date: string]: string} = {};
         data.forEach(entry => {
-          moods[entry.entry_date] = moodToEmoji[entry.mood] || null;
+          const moodKey = entry.mood ? entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1).toLowerCase() : '';
+          moods[entry.entry_date] = moodToEmoji[moodKey] || entry.mood;
         });
         setMoodByDate(moods);
       }
     }
     fetchMoods();
-  }, [currentMonth, uid]);
+  }, [currentMonth, uid, refreshFlag]);
 
   const getMoodForDate = (date: Date) => {
     return moodByDate[format(date, 'yyyy-MM-dd')] || null;

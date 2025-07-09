@@ -9,6 +9,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
+  const [refreshFlag, setRefreshFlag] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,7 +25,8 @@ const Index = () => {
     setCurrentMonth(startOfMonth(date));
   };
 
-  const handleCloseEntry = () => {
+  const handleEntrySaved = () => {
+    setRefreshFlag(f => f + 1);
     setShowJournalEntry(false);
   };
 
@@ -80,12 +82,13 @@ const Index = () => {
               selectedDate={selectedDate} 
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
+              refreshFlag={refreshFlag}
             />
           </div>
         ) : (
           <JournalEntry 
             date={selectedDate} 
-            onClose={handleCloseEntry}
+            onClose={handleEntrySaved}
           />
         )}
       </main>
