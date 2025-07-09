@@ -197,3 +197,27 @@ export const getMonthlyMoodSummary = async (
   }
 };
 
+/**
+ * Fetch the user's longest happy streak from the v_happy_streaks view
+ */
+export const getLongestHappyStreak = async (): Promise<{ streak?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    // Query the view for this user's streak
+    const { data, error } = await supabase
+      .from('v_happy_streaks')
+      .select('longest_happy_streak')
+      .eq('uid', user.uid)
+      .maybeSingle();
+    if (error) {
+      return { error: error.message };
+    }
+    return { streak: data?.longest_happy_streak ?? 0 };
+  } catch (error) {
+    return { error: 'Failed to fetch streak' };
+  }
+};
+
