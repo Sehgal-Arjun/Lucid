@@ -282,38 +282,6 @@ export const filterJournalEntries = async (
   }
 };
 
-export const filterJournalEntries = async (
-  filters: {
-    mood?: string;
-    content?: string;
-    startDate?: string;
-    endDate?: string;
-    tag?: string;
-  }
-): Promise<{ data?: JournalEntryData[]; error?: string }> => {
-  try {
-    const user = getCurrentUser();
-    if (!user || !user.uid) {
-      return { error: 'User not authenticated. Please log in.' };
-    }
-    const { mood, content, startDate, endDate, tag } = filters;
-    const { data, error } = await supabase.rpc('filter_journal_entries', {
-      p_uid: user.uid,
-      p_mood: mood || null,
-      p_content: content || null,
-      p_start_date: startDate || null,
-      p_end_date: endDate || null,
-      p_tag: tag || null,
-    });
-    if (error) {
-      return { error: error.message };
-    }
-    return { data };
-  } catch (error) {
-    return { error: 'Failed to fetch filtered entries' };
-  }
-};
-
 /**
  * Fetch the user's longest happy streak from the v_happy_streaks view
  */
