@@ -65,18 +65,32 @@ npm run dev
 - **Calendar-Centric Journaling:**
   - A clean calendar UI for selecting days, with emoji thumbnails to indicate entries.
   - Create and view daily journal entries.
-  - To be implemented: tags and images (in Milestone 2)
+  - To be implemented: tags and images (in Milestone 3)
 - **Modern UI:**
   - Responsive, glassmorphic design with Tailwind and shadcn/ui components.
-- **Mood Analytics:**
-  - Monthly mood summaries are computed in a materialized view for fast charts.
-  - A dedicated Monthly Recap page lets you select any month and view the mood breakdown.
+- **Analytics:**
+  - Monthly mood summaries that are shown in a podium-style view for the top emotions.
+  - Statistics are shown for the following:
+    - Current streak
+    - Longest streak
+    - Longest happy streak
+    - Most common mood
+    - Total entries
+    - Average entry length
+- **Filtering**
+  - Filters journal entries based on mood, date range, content, and tags.
+  - Allows users to view the journal entries and edit them from this view.
+- **Auto-Select Moods**
+  - Automatically determines which moods a user might have been feeling based on the content in their entry.
+  - Uses a SQL trigger and matches keywords to determine which emotion might best correspond to the entry.
+- **Data Integrity Protection**
+  - Disallow users to enter journal entries for dates in the future using SQL triggers.
 
 ---
 
 ## 📝 Notes
 - This app is for demo/educational purposes, as we wanted to use our own SQL queries to manage all database tables. For production, use Supabase Auth for secure authentication.
-- You can extend the schema and UI for more features (mood analytics, sharing, etc).
+- We still plan to build more features into this application, such as memories ("on this day, last year...").
 - To load our sample data, we have SQL queries in the Supabase SQL Editor. These queries can also be found in the files in the following section.
 - We created this sample data manually. We didn't need a lot of data to get started with the application, as data is user-generated and personal.
 
@@ -90,3 +104,12 @@ npm run dev
 - `src/database/queries/mv_monthly_mood.sql` — Materialized view for monthly mood counts
 - `src/database/queries/get_monthly_mood_summary.sql` — Helper function to query the view
 - `src/database/queries/refresh_mv_monthly_mood.sql` — Refresh utility for the view
+- `src/database/queries/prevent_future_date_trigger.sql` - Stops users from inputting future entries
+- `src/database/queries/create_happy_streak_view.sql` - Create the view to access longest streak of happy days
+- `src/database/queries/get_average_entry_length.sql` - Calculate the average length of the user's entries
+- `src/database/queries/get_current_streak.sql` - Calculate the user's current streak
+- `src/database/queries/get_longest_streak.sql` - Calculate the user's longest streak
+- `src/database/queries/get_most_common_mood.sql` - Determine the user's most common mood
+- `src/database/queries/get_number_of_total_entries.sql` - Determine how many entries the user has written
+- `src/database/queries/filter_journal_entries.sql` - Filters journal entries by date/mood/content/tags
+- `src/database/queries/update_journal_entry_by_id` - Updates journal entries
