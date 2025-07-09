@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useNavigate, Link } from 'react-router-dom';
-import { getMonthlyMoodSummary, debugCheckData, getLongestHappyStreak } from '@/lib/journalService';
+import { getMonthlyMoodSummary, debugCheckData, getLongestHappyStreak, getCurrentStreak, getLongestStreak, getMostCommonMood, getTotalEntries, getAvgEntryLength } from '@/lib/journalService';
 import { Button } from '@/components/ui/button';
 import { moodToEmoji } from '@/lib/moodMap';
 import { Flame } from 'lucide-react';
@@ -21,6 +21,14 @@ const MonthlyRecap = () => {
   const [streak, setStreak] = useState<number | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
   const [streakError, setStreakError] = useState<string | null>(null);
+  const [currentStreak, setCurrentStreak] = useState<number | null>(null);
+  const [longestStreak, setLongestStreak] = useState<number | null>(null);
+  const [mostCommonMood, setMostCommonMood] = useState<{ mood?: string; count?: number } | null>(null);
+  const [totalEntries, setTotalEntries] = useState<number | null>(null);
+  const [avgEntryLength, setAvgEntryLength] = useState<number | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [longestHappyStreak, setLongestHappyStreak] = useState<number | null>(null);
 
   // Parse year and month to avoid timezone issues for both display and query
   const [year, monthNum] = month.split('-').map(Number);
@@ -69,6 +77,32 @@ const MonthlyRecap = () => {
     }
     load();
   }, [month]);
+
+  useEffect(() => {
+    // Fetch all stats in parallel
+    setStatsLoading(true);
+    setStatsError(null);
+    Promise.all([
+      getCurrentStreak(),
+      getLongestStreak(),
+      getMostCommonMood(),
+      getTotalEntries(),
+      getAvgEntryLength(),
+      getLongestHappyStreak(),
+    ]).then(([cur, longest, mood, total, avg, happyStreak]) => {
+      if (cur.error || longest.error || mood.error || total.error || avg.error || happyStreak.error) {
+        setStatsError(cur.error || longest.error || mood.error || total.error || avg.error || happyStreak.error || 'Error loading stats');
+      } else {
+        setCurrentStreak(cur.streak ?? 0);
+        setLongestStreak(longest.streak ?? 0);
+        setMostCommonMood({ mood: mood.mood, count: mood.count });
+        setTotalEntries(total.total ?? 0);
+        setAvgEntryLength(avg.avg ?? 0);
+        setLongestHappyStreak(happyStreak.streak ?? 0);
+      }
+      setStatsLoading(false);
+    });
+  }, [navigate]);
 
   const handleLogout = () => {
     sessionStorage.clear();
@@ -180,14 +214,42 @@ const MonthlyRecap = () => {
             <CardTitle className="text-xl font-semibold mb-2">Statistics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-700 font-medium text-lg">Longest happy streak</span>
-              <span title="Longest Happy Streak" className="flex items-center text-orange-500 font-bold text-lg">
-                <Flame className="w-6 h-6 mr-2" />
-                {streakLoading ? 'Loading...' : (streak ?? 0)} day{(streak ?? 0) === 1 ? '' : 's'}
-              </span>
-              {streakError && <span className="ml-4 text-red-500 text-sm">{streakError}</span>}
-            </div>
+            {statsLoading ? (
+              <div className="text-slate-500">Loading statistics...</div>
+            ) : statsError ? (
+              <div className="text-red-500">{statsError}</div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Current streak</span>
+                  <span className="font-bold text-orange-500 text-lg">{currentStreak} day{currentStreak === 1 ? '' : 's'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Longest streak</span>
+                  <span className="font-bold text-orange-500 text-lg">{longestStreak} day{longestStreak === 1 ? '' : 's'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Longest happy streak</span>
+                  <span className="font-bold text-orange-500 text-lg">{longestHappyStreak} day{longestHappyStreak === 1 ? '' : 's'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Most common mood</span>
+                  <span className="font-bold text-orange-500 text-lg">
+                    {mostCommonMood?.mood ? `${mostCommonMood.mood} (${mostCommonMood.count})` : '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Total entries</span>
+                  <span className="font-bold text-orange-500 text-lg">{totalEntries}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-medium text-lg">Average entry length</span>
+                  <span className="font-bold text-orange-500 text-lg">
+                    {avgEntryLength !== null ? `${Math.round(avgEntryLength)} chars` : '—'}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
