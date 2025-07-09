@@ -128,6 +128,59 @@ export const loadJournalEntry = async (
   }
 };
 
+export const loadJournalEntryById = async (
+  entry_id: number
+): Promise<{ data?: JournalEntryData & { moodEmoji?: string }; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { data, error } = await supabase
+      .from('journalentries')
+      .select('*')
+      .eq('uid', user.uid)
+      .eq('entry_id', entry_id)
+      .single();
+    if (error) {
+      return { error: error.message };
+    }
+    if (data) {
+      const moodEmoji = moodToEmoji[data.mood] || data.mood;
+      return { data: { ...data, moodEmoji } };
+    }
+    return { data: undefined };
+  } catch (error) {
+    return { error: 'Failed to load entry by id' };
+  }
+};
+
+export const updateJournalEntryById = async (
+  entryId: number,
+  content: string,
+  selectedMoodEmoji: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { success: false, error: 'User not authenticated. Please log in.' };
+    }
+    const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
+    const { data, error } = await supabase.rpc('update_journal_entry_by_id', {
+      p_entry_id: entryId,
+      p_content: content,
+      p_mood: moodName
+    });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    await refreshMonthlyMoodView();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update entry' };
+  }
+};
+
 export const debugCheckData = async (): Promise<{ data?: any[]; error?: string }> => {
   try {
     const user = getCurrentUser();
@@ -194,6 +247,38 @@ export const getMonthlyMoodSummary = async (
     return { data };
   } catch (error) {
     return { error: 'Failed to fetch mood summary' };
+  }
+};
+
+export const filterJournalEntries = async (
+  filters: {
+    mood?: string;
+    content?: string;
+    startDate?: string;
+    endDate?: string;
+    tag?: string;
+  }
+): Promise<{ data?: JournalEntryData[]; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    const { mood, content, startDate, endDate, tag } = filters;
+    const { data, error } = await supabase.rpc('filter_journal_entries', {
+      p_uid: user.uid,
+      p_mood: mood || null,
+      p_content: content || null,
+      p_start_date: startDate || null,
+      p_end_date: endDate || null,
+      p_tag: tag || null,
+    });
+    if (error) {
+      return { error: error.message };
+    }
+    return { data };
+  } catch (error) {
+    return { error: 'Failed to fetch filtered entries' };
   }
 };
 
