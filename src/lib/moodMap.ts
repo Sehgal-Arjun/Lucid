@@ -6,8 +6,5 @@ export const moodToEmoji: { [key: string]: string } = {
     Sad: '😔',
     Tired: '😴',
     Frustrated: '😤',
-    Loved: '🥰',
-    Productive: '💪',
-    Adventurous: '🏞️',
-    Relaxed: '😌',
+    Loved: '🥰'
   };
