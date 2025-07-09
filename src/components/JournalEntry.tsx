@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import MoodSelector from '@/components/MoodSelector';
 import { saveJournalEntry, loadJournalEntry, updateJournalEntryById } from '@/lib/journalService';
+import { moodToEmoji } from '@/lib/moodMap';
 
 interface JournalEntryProps {
   date?: Date;
@@ -135,9 +136,13 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
           selectedMood || ''
         );
       }
-      const { success, error } = result || {};
+      const { success, error, updatedEntry } = result || {};
 
       if (success) {
+        if (updatedEntry) {
+          setEntry(updatedEntry.content || '');
+          setSelectedMood(updatedEntry.moodEmoji || null);
+        }
         toast({
           title: hasExistingEntry ? "Entry Updated" : "Entry Saved",
           description: hasExistingEntry 
@@ -145,7 +150,10 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
             : "Your journal entry has been saved successfully.",
         });
         setHasExistingEntry(true);
-        onClose();
+        // Only close after UI updates
+        setTimeout(() => {
+          onClose();
+        }, 100); // Give React a tick to update state before closing
       } else {
         toast({
           title: "Save Failed",

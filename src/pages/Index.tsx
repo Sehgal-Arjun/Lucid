@@ -13,6 +13,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
+  const [refreshFlag, setRefreshFlag] = useState(0);
   const navigate = useNavigate();
   const [filteredEntries, setFilteredEntries] = useState<any[]>([]);
   const [filterActive, setFilterActive] = useState(false);
@@ -39,6 +40,7 @@ const Index = () => {
   };
 
   const handleCloseEntry = () => {
+    setRefreshFlag(f => f + 1);
     setShowJournalEntry(false);
   };
 
@@ -149,10 +151,11 @@ const Index = () => {
               selectedDate={selectedDate} 
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
+              refreshFlag={refreshFlag}
             />
           </div>
         ) : (
-          <JournalEntry
+          <JournalEntry 
             date={selectedEntryId ? undefined : selectedDate}
             entryId={selectedEntryId || undefined}
             onClose={handleCloseEntry}

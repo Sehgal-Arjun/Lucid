@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { format } from 'date-fns';
 import { moodToEmoji } from './moodMap';
+import { getMoodFromEntry } from './utils';
 
 
 const emojiToMood = Object.fromEntries(
@@ -41,27 +42,40 @@ const getCurrentUser = () => {
 export const saveJournalEntry = async (
   date: Date,
   content: string,
-  selectedMoodEmoji: string
-): Promise<{ success: boolean; error?: string }> => {
+  selectedMoodEmoji: string 
+): Promise<{ success: boolean; error?: string; updatedEntry?: JournalEntryData & { moodEmoji?: string } }> => {
   try {
     const user = getCurrentUser();
+    console.log('[saveJournalEntry] user:', user);
     if (!user || !user.uid) {
+      console.error('[saveJournalEntry] User not authenticated');
       return { success: false, error: 'User not authenticated. Please log in.' };
     }
 
     const entryDate = format(date, 'yyyy-MM-dd');
-    const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
+    console.log('[saveJournalEntry] entryDate:', entryDate);
+    console.log('[saveJournalEntry] content:', content);
+    console.log('[saveJournalEntry] selectedMoodEmoji:', selectedMoodEmoji);
     
-
+    // Convert emoji to mood name for database storage
+    let moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
+    // If no mood selected, use keyword search
+    if (!selectedMoodEmoji) {
+      moodName = getMoodFromEntry(content);
+      console.log('[saveJournalEntry] moodName from keyword:', moodName);
+    }
+    console.log('[saveJournalEntry] moodName to save:', moodName);
+    
     const { data, error } = await supabase.rpc('save_journal_entry', {
       user_id: user.uid,
       entry_date_input: entryDate,
       content_input: content,
       mood_input: moodName
     });
+    console.log('[saveJournalEntry] save_journal_entry RPC result:', { data, error });
 
     if (error) {
-      console.error('Error saving journal entry:', error);
+      console.error('[saveJournalEntry] Error saving journal entry:', error);
       return { success: false, error: error.message };
     }
 
@@ -85,13 +99,20 @@ export const saveJournalEntry = async (
       console.error('Error checking saved entry:', checkError);
       return { success: false, error: 'Failed to verify entry was saved' };
     }
-
-   
-    await refreshMonthlyMoodView();
-    return { success: true };
     
+    // Always re-fetch the entry to get the mood set by the trigger
+    const { data: updatedEntry, error: loadError } = await loadJournalEntry(date);
+    console.log('[saveJournalEntry] loadJournalEntry after save:', { updatedEntry, loadError });
+
+    await refreshMonthlyMoodView();
+    
+    if (loadError) {
+      return { success: true, error: loadError };
+    }
+
+    return { success: true, updatedEntry };
   } catch (error) {
-    console.error('Error saving journal entry:', error);
+    console.error('[saveJournalEntry] Exception:', error);
     return { success: false, error: 'Failed to save entry' };
   }
 };
@@ -100,29 +121,33 @@ export const loadJournalEntry = async (
   date: Date
 ): Promise<{ data?: JournalEntryData & { moodEmoji?: string }; error?: string }> => {
   try {
-
     const user = getCurrentUser();
+    console.log('[loadJournalEntry] user:', user);
     if (!user || !user.uid) {
+      console.error('[loadJournalEntry] User not authenticated');
       return { error: 'User not authenticated. Please log in.' };
     }
 
     const entryDate = format(date, 'yyyy-MM-dd');
+    console.log('[loadJournalEntry] entryDate:', entryDate);
     
     const { data, error } = await supabase.rpc('load_journal_entry', {
       user_id: user.uid,
       entry_date_input: entryDate
     });
+    console.log('[loadJournalEntry] load_journal_entry RPC result:', { data, error });
 
     if (error) {
-      console.error('Error loading journal entry:', error);
+      console.error('[loadJournalEntry] Error loading journal entry:', error);
       return { error: error.message };
     }
 
     if (data && data.length > 0) {
       const entry = data[0];
-      const moodEmoji = moodToEmoji[entry.mood] || entry.mood;
-      //console.log('Loaded existing journal entry:', { ...entry, moodEmoji });
-      
+      // Capitalize first letter for mood mapping
+      const moodKey = entry.mood ? entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1).toLowerCase() : '';
+      const moodEmoji = moodToEmoji[moodKey] || entry.mood;
+      console.log('[loadJournalEntry] entry loaded:', { ...entry, moodEmoji });
       return { 
         data: { 
           ...entry, 
@@ -131,10 +156,10 @@ export const loadJournalEntry = async (
       };
     }
 
-    //console.log('No existing entry found for this date');
+    console.log('[loadJournalEntry] No existing entry found for this date');
     return { data: undefined };
   } catch (error) {
-    //console.error('Error loading journal entry:', error);
+    console.error('[loadJournalEntry] Exception:', error);
     return { error: 'Failed to load entry' };
   }
 };
