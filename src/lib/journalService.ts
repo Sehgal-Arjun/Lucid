@@ -44,17 +44,6 @@ export const saveJournalEntry = async (
   selectedMoodEmoji: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Add client-side future date check
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
-    if (date > today) {
-      return { 
-        success: false, 
-        error: 'You cannot create journal entries for future dates. Please select today or a past date.' 
-      };
-    }
-
     const user = getCurrentUser();
     if (!user || !user.uid) {
       return { success: false, error: 'User not authenticated. Please log in.' };
@@ -63,6 +52,7 @@ export const saveJournalEntry = async (
     const entryDate = format(date, 'yyyy-MM-dd');
     const moodName = emojiToMood[selectedMoodEmoji] || selectedMoodEmoji;
     
+
     const { data, error } = await supabase.rpc('save_journal_entry', {
       user_id: user.uid,
       entry_date_input: entryDate,
@@ -75,8 +65,31 @@ export const saveJournalEntry = async (
       return { success: false, error: error.message };
     }
 
+    
+    const { data: checkData, error: checkError } = await supabase
+      .from('journalentries')
+      .select('entry_id')
+      .eq('uid', user.uid)
+      .eq('entry_date', entryDate)
+      .single();
+
+    
+    if (checkError && checkError.code === 'PGRST116') {
+      return { 
+        success: false, 
+        error: 'Invalid date: You cannot create journal entries for future dates. Please select today or a past date.' 
+      };
+    }
+
+    if (checkError) {
+      console.error('Error checking saved entry:', checkError);
+      return { success: false, error: 'Failed to verify entry was saved' };
+    }
+
+   
     await refreshMonthlyMoodView();
     return { success: true };
+    
   } catch (error) {
     console.error('Error saving journal entry:', error);
     return { success: false, error: 'Failed to save entry' };
