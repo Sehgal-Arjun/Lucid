@@ -74,6 +74,9 @@ export const saveJournalEntry = async (
       return { success: false, error: error.message };
     }
 
+    // Refresh the materialized view so the recap updates immediately
+    await refreshMonthlyMoodView();
+
     //console.log('Journal entry saved successfully:', data);
     return { success: true };
   } catch (error) {
@@ -125,7 +128,45 @@ export const loadJournalEntry = async (
   }
 };
 
+export const debugCheckData = async (): Promise<{ data?: any[]; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { error: 'User not authenticated. Please log in.' };
+    }
+    
+    console.log('Checking data for user:', user.uid);
+    
+    // Check if there are any journal entries for this user
+    const { data, error } = await supabase
+      .from('JournalEntries')
+      .select('*')
+      .eq('uid', user.uid);
+    
+    console.log('Journal entries for user:', { data, error });
+    
+    if (error) {
+      return { error: error.message };
+    }
+    return { data };
+  } catch (error) {
+    return { error: 'Failed to check data' };
+  }
+};
 
+export const refreshMonthlyMoodView = async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase.rpc('refresh_mv_monthly_mood');
+    if (error) {
+      console.error('Error refreshing materialized view:', error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Error refreshing materialized view:', error);
+    return { success: false, error: 'Failed to refresh view' };
+  }
+};
 
 export const getMonthlyMoodSummary = async (
   start: Date,
@@ -138,11 +179,15 @@ export const getMonthlyMoodSummary = async (
     }
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
+    
+    // Use the materialized view through the get_monthly_mood_summary function
+    // This demonstrates advanced SQL features (materialized views, functions)
     const { data, error } = await supabase.rpc('get_monthly_mood_summary', {
       user_id: user.uid,
       start_date: startDate,
       end_date: endDate
     });
+    
     if (error) {
       return { error: error.message };
     }
