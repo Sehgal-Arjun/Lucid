@@ -427,3 +427,60 @@ export const getAvgEntryLength = async (): Promise<{ avg?: number; error?: strin
     return { error: 'Failed to fetch average entry length' };
   }
 };
+
+// TAG MANAGEMENT
+
+/**
+ * Fetch all tags for a given entry_id
+ */
+export const getTagsForEntry = async (entry_id: number) => {
+  const { data, error } = await supabase
+    .from('entrytags')
+    .select('tag_id, name')
+    .eq('entry_id', entry_id);
+  return { data, error };
+};
+
+/**
+ * Add a tag to an entry (by name)
+ */
+export const addTagToEntry = async (entry_id: number, name: string) => {
+  const { data, error } = await supabase
+    .from('entrytags')
+    .insert([{ entry_id, name }]);
+  if (error) {
+    console.error('Error inserting tag:', error);
+  }
+  return { data, error };
+};
+
+/**
+ * Remove a tag from an entry (by tag_id)
+ */
+export const removeTagFromEntry = async (entry_id: number, tag_id: number) => {
+  const { data, error } = await supabase
+    .from('entrytags')
+    .delete()
+    .eq('entry_id', entry_id)
+    .eq('tag_id', tag_id);
+  return { data, error };
+};
+
+/**
+ * Fetch all unique tags for a user (across all their entries)
+ */
+export const getAllTagsForUser = async (uid: number) => {
+  const { data, error } = await supabase
+    .from('entrytags')
+    .select('name')
+    .in('entry_id',
+      (await supabase
+        .from('journalentries')
+        .select('entry_id')
+        .eq('uid', uid)
+      ).data?.map(e => e.entry_id) || []
+    );
+  // Return unique tag names
+  const uniqueTags = data ? Array.from(new Set(data.map(t => t.name))) : [];
+  return { data: uniqueTags, error };
+};
