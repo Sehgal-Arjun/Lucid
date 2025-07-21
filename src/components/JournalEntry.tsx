@@ -143,7 +143,10 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
           setTags((updatedTags || []).map(t => t.name));
         }
       } else {
-        setTags([...tags, tagInput.trim()]);
+        // For new/unsaved entries, update both tags and tagObjects in local state
+        const newTags = [...tags, tagInput.trim()];
+        setTags(newTags);
+        setTagObjects(newTags.map((name, idx) => ({ tag_id: -(idx + 1), name })));
       }
       setTagInput('');
     }
