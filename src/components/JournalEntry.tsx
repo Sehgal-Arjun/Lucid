@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ArrowLeft, Save, Image, Tag, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import MoodSelector from '@/components/MoodSelector';
-import { saveJournalEntry, loadJournalEntry, updateJournalEntryById } from '@/lib/journalService';
+import { saveJournalEntry, loadJournalEntry, updateJournalEntryById, createDraftEntry } from '@/lib/journalService';
 import { moodToEmoji } from '@/lib/moodMap';
+import ImageUpload from '@/components/ImageUpload';
+import ImageGallery from '@/components/ImageGallery';
+import { getEntryImages, type ImageData } from '@/lib/imageService';
 
 interface JournalEntryProps {
   date?: Date;
@@ -34,13 +37,35 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [entryDate, setEntryDate] = useState<Date | null>(date || null);
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [currentEntryId, setCurrentEntryId] = useState<number | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  // Add a flag to track if we're editing
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Load existing entry when component mounts or date changes
+  // Add debugging to find the culprit:
+  console.log('[JournalEntry] Render - date:', date, 'entryId:', entryId, 'hasExistingEntry:', hasExistingEntry, 'currentEntryId:', currentEntryId, 'entry text length:', entry.length);
+
+  // Add useCallback imports
+  const stableOnClose = useCallback(onClose, []);
+
+  // Remove toast and onClose from useEffect dependencies and stabilize them:
+  // const stableOnClose = useCallback(onClose, []);
+
+  // Update the main useEffect with minimal dependencies:
   useEffect(() => {
+    console.log('[JournalEntry] Main useEffect triggered - date:', date, 'entryId:', entryId);
+    
     const initializeEntry = async () => {
+      // Don't reload if user is actively editing or if we already have an entry loaded
+      if (isEditing || (hasExistingEntry && currentEntryId && entry.length > 0)) {
+        console.log('[JournalEntry] Skipping reload - user is editing or entry already loaded');
+        return;
+      }
+      
       setIsLoading(true);
       
-      // Get current user
       const user = getCurrentUser();
       setCurrentUser(user);
       
@@ -51,7 +76,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
           variant: "destructive",
         });
         setIsLoading(false);
-        onClose();
+        stableOnClose();
         return;
       }
       
@@ -62,7 +87,24 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
           result = await loadJournalEntryById(entryId);
         } else if (date) {
           result = await loadJournalEntry(date);
+          
+          // If no existing entry, create a draft entry immediately
+          if (!result.data) {
+            console.log('[JournalEntry] Creating draft entry for date:', date);
+            const draftResult = await createDraftEntry(date);
+            console.log('[JournalEntry] Draft result:', draftResult);
+            
+            if (draftResult.success && draftResult.entryId) {
+              setCurrentEntryId(draftResult.entryId);
+              setEntry('');
+              setSelectedMood(null);
+              setHasExistingEntry(false);
+              setEntryDate(date);
+              console.log('[JournalEntry] Draft entry created with ID:', draftResult.entryId);
+            }
+          }
         }
+        
         const { data, error } = result || {};
         
         if (error) {
@@ -73,21 +115,13 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
             variant: "destructive",
           });
         } else if (data) {
-          // Pre-fill the form with existing data
           setEntry(data.content || '');
           setSelectedMood(data.moodEmoji || null);
           setHasExistingEntry(true);
+          setCurrentEntryId(data.entry_id || null);
           if (data.entry_date) {
             setEntryDate(new Date(data.entry_date));
           }
-          //console.log('Loaded existing entry for', format(date, 'yyyy-MM-dd'));
-        } else {
-          // No existing entry, start fresh
-          setEntry('');
-          setSelectedMood(null);
-          setHasExistingEntry(false);
-          setEntryDate(date || null);
-          //console.log('No existing entry for', format(date, 'yyyy-MM-dd'));
         }
       } catch (error) {
         console.error('Error initializing entry:', error);
@@ -97,7 +131,39 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
     };
 
     initializeEntry();
-  }, [date, entryId, toast, onClose]);
+  }, [date, entryId, isEditing, hasExistingEntry, currentEntryId, entry, stableOnClose]); // Only essential dependencies
+
+  // Also add a flag to prevent multiple rapid loads:
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Update the useEffect that loads images with better logging:
+  useEffect(() => {
+    const loadImages = async () => {
+      console.log('[JournalEntry] loadImages - entryId:', entryId, 'hasExistingEntry:', hasExistingEntry, 'currentEntryId:', currentEntryId);
+      
+      if (!currentEntryId) {
+        console.log('[JournalEntry] No currentEntryId, skipping image load');
+        return;
+      }
+      
+      console.log('[JournalEntry] Loading images for entryId:', currentEntryId);
+      setLoadingImages(true);
+      
+      const result = await getEntryImages(currentEntryId);
+      console.log('[JournalEntry] getEntryImages result:', result);
+      
+      if (result.data) {
+        console.log('[JournalEntry] Setting images:', result.data);
+        setImages(result.data);
+      } else {
+        console.log('[JournalEntry] No images found or error:', result.error);
+        setImages([]);
+      }
+      setLoadingImages(false);
+    };
+
+    loadImages();
+  }, [currentEntryId]); // Use currentEntryId as dependency
 
   const handleSave = async () => {
     // Add this future date check
@@ -150,6 +216,7 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
             : "Your journal entry has been saved successfully.",
         });
         setHasExistingEntry(true);
+        setIsEditing(false); // Clear editing flag after successful save
         // Only close after UI updates
         setTimeout(() => {
           onClose();
@@ -171,6 +238,26 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
     }
 
     setIsSaving(false);
+  };
+
+  const handleImageUploaded = (newImage: ImageData) => {
+    console.log('[JournalEntry] handleImageUploaded called, current entry length:', entry.length);
+    setIsUploadingImage(true);
+    setImages(prev => {
+      console.log('[JournalEntry] Adding image, prev images:', prev.length);
+      return [...prev, newImage];
+    });
+    setTimeout(() => setIsUploadingImage(false), 100); // Reset flag
+  };
+
+  const handleImageDeleted = (imageId: number) => {
+    setImages(prev => prev.filter(img => img.image_id !== imageId));
+  };
+
+  const handleImageUpdated = (imageId: number, caption: string) => {
+    setImages(prev => prev.map(img => 
+      img.image_id === imageId ? { ...img, caption } : img
+    ));
   };
 
   if (isLoading) {
@@ -245,19 +332,35 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
           <Textarea
             placeholder="Write about your day, your thoughts, or anything on your mind..."
             value={entry}
-            onChange={(e) => setEntry(e.target.value)}
+            onChange={(e) => {
+              setEntry(e.target.value);
+              setIsEditing(true); // Mark as editing when user types
+            }}
             className="min-h-[300px] border-slate-200 rounded-2xl text-slate-700 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
+
+        {/* Images Section */}
+        {(images.length > 0 || hasExistingEntry) && (
+          <div className="px-8 py-6 border-b border-slate-100">
+            <ImageGallery
+              images={images}
+              onImageDeleted={handleImageDeleted}
+              onImageUpdated={handleImageUpdated}
+              readOnly={false}
+            />
+          </div>
+        )}
 
         {/* Actions */}
         <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
-                <Image className="h-4 w-4 mr-2" />
-                Add Photo
-              </Button>
+              <ImageUpload
+                entryId={currentEntryId || 0}
+                onImageUploaded={handleImageUploaded}
+                disabled={!currentEntryId}
+              />
               <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-white rounded-xl">
                 <Tag className="h-4 w-4 mr-2" />
                 Add Tags
