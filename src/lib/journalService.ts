@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { format } from 'date-fns';
 import { moodToEmoji } from './moodMap';
 import { getMoodFromEntry } from './utils';
+import { getEntryImages, type ImageData } from './imageService';
 
 
 const emojiToMood = Object.fromEntries(
@@ -16,6 +17,11 @@ export interface JournalEntryData {
   mood: string; 
   created_at?: string;
   updated_at?: string;
+}
+
+export interface JournalEntryWithImages extends JournalEntryData {
+  moodEmoji?: string;
+  images?: ImageData[];
 }
 
 
@@ -176,6 +182,34 @@ export const loadJournalEntry = async (
   } catch (error) {
     console.error('[loadJournalEntry] Exception:', error);
     return { error: 'Failed to load entry' };
+  }
+};
+
+export const loadJournalEntryWithImages = async (
+  date: Date
+): Promise<{ data?: JournalEntryWithImages; error?: string }> => {
+  try {
+    const entryResult = await loadJournalEntry(date);
+    
+    if (entryResult.error) {
+      return { error: entryResult.error };
+    }
+    
+    if (!entryResult.data) {
+      return { data: undefined };
+    }
+    
+    // Load images for this entry
+    const imagesResult = await getEntryImages(entryResult.data.entry_id!);
+    
+    return {
+      data: {
+        ...entryResult.data,
+        images: imagesResult.data || []
+      }
+    };
+  } catch (error) {
+    return { error: 'Failed to load entry with images' };
   }
 };
 
@@ -428,6 +462,31 @@ export const getAvgEntryLength = async (): Promise<{ avg?: number; error?: strin
   }
 };
 
+export const createDraftEntry = async (
+  date: Date
+): Promise<{ success: boolean; entryId?: number; error?: string }> => {
+  try {
+    const user = getCurrentUser();
+    if (!user || !user.uid) {
+      return { success: false, error: 'User not authenticated. Please log in.' };
+    }
+
+    const entryDate = formatDateET(date);
+    
+    const { data, error } = await supabase.rpc('create_draft_entry', {
+      user_id: user.uid,
+      entry_date_input: entryDate
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, entryId: data[0]?.entry_id };
+  } catch (error) {
+    return { success: false, error: 'Failed to create draft entry' };
+  }
+}
 // TAG MANAGEMENT
 
 /**
