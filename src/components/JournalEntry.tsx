@@ -117,25 +117,13 @@ const JournalEntry: React.FC<JournalEntryProps> = ({ date, entryId, onClose, onB
               return;
             }
             
-            console.log('[JournalEntry] Creating draft entry for date:', date);
-            const draftResult = await createDraftEntry(date);
-            console.log('[JournalEntry] Draft result:', draftResult);
-            
-            if (draftResult.success && draftResult.entryId) {
-              setCurrentEntryId(draftResult.entryId);
-              setEntry('');
-              setSelectedMood(null);
-              setHasExistingEntry(false);
-              setEntryDate(date);
-              console.log('[JournalEntry] Draft entry created with ID:', draftResult.entryId);
-            } else {
-              console.error('[JournalEntry] Failed to create draft:', draftResult.error);
-              // For future dates or failed drafts, just set empty state
-              setEntry('');
-              setSelectedMood(null);
-              setHasExistingEntry(false);
-              setEntryDate(date);
-            }
+            // Don't create draft entry immediately - let user start typing first
+            console.log('[JournalEntry] No existing entry, starting with empty state');
+            setCurrentEntryId(null);
+            setEntry('');
+            setSelectedMood(null);
+            setHasExistingEntry(false);
+            setEntryDate(date);
           }
         }
         
