@@ -77,9 +77,13 @@ npm run dev
     - Most common mood
     - Total entries
     - Average entry length
+- **Images & Tags**
+  - Attach up to five images per entry (stored in Supabase Storage)  
+  - Add free‑form tags (e.g., `#vacation`, `#waterloo`) for richer context and fast filtering
 - **Filtering**
   - Filters journal entries based on mood, date range, content, and tags.
   - Allows users to view the journal entries and edit them from this view.
+  - Also used SQL indexing to optimise the queries.
 - **Auto-Select Moods**
   - Automatically determines which moods a user might have been feeling based on the content in their entry.
   - Uses a SQL trigger and matches keywords to determine which emotion might best correspond to the entry.
@@ -90,7 +94,6 @@ npm run dev
 
 ## 📝 Notes
 - This app is for demo/educational purposes, as we wanted to use our own SQL queries to manage all database tables. For production, use Supabase Auth for secure authentication.
-- We still plan to build more features into this application, such as memories ("on this day, last year...").
 - To load our sample data, we have SQL queries in the Supabase SQL Editor. These queries can also be found in the files in the following section.
 - We created this sample data manually. We didn't need a lot of data to get started with the application, as data is user-generated and personal.
 
